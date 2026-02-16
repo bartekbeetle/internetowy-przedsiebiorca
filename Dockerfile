@@ -16,7 +16,7 @@ COPY packages/config/package.json ./packages/config/package.json
 COPY packages/ui/package.json ./packages/ui/package.json
 COPY packages/utils/package.json ./packages/utils/package.json
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # --- Builder stage ---
 FROM base AS builder
