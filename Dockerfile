@@ -53,9 +53,6 @@ COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Create data directory for SQLite
-RUN mkdir -p /data && chown nextjs:nodejs /data
-
 USER nextjs
 
 EXPOSE 3000
