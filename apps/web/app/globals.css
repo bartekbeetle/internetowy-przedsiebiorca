@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: 15 23 42;
+    --brand-secondary: 30 41 59;
+    --brand-accent: 249 115 22;
+  }
+
+  body {
+    @apply bg-brand-primary text-slate-100 antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

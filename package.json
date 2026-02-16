@@ -1,0 +1,23 @@
+{
+  "name": "internetowy-przedsiebiorca",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=web",
+    "dev:klub": "turbo dev --filter=klub",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=web",
+    "build:klub": "turbo build --filter=klub",
+    "lint": "turbo lint",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  }
+}

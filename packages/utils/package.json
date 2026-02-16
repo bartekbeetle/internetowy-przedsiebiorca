@@ -1,0 +1,8 @@
+{
+  "name": "@repo/utils",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "files": ["index.ts", "constants.ts", "validation.ts"]
+}

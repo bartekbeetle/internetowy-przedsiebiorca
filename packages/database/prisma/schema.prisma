@@ -1,0 +1,521 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USERS & AUTH
+// ==========================================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  username        String    @unique
+  name            String?
+  avatar          String?
+  bio             String?
+  instagramHandle     String?
+  role                String    @default("MEMBER")
+  onboardingCompleted Boolean   @default(false)
+  emailVerified       DateTime?
+
+  points          Int       @default(0)
+  level           Int       @default(1)
+  streak          Int       @default(0)
+  longestStreak   Int       @default(0)
+  lastActiveAt    DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  totalPosts       Int       @default(0)
+  totalComments    Int       @default(0)
+  totalLikes       Int       @default(0)
+  completedCourses Int       @default(0)
+
+  posts              Post[]
+  comments           Comment[]
+  likes              Like[]
+  courseProgress      CourseProgress[]
+  courseEnrollments   CourseEnrollment[]
+  lessonProgress     LessonProgress[]
+  lessonNotes        LessonNote[]
+  savedReels         SavedReel[]
+  activityLogs       ActivityLog[]
+  badges             UserBadge[]
+  challengeParticipations ChallengeParticipation[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ==========================================
+// HIERARCHICAL CATEGORIES + TAGS
+// ==========================================
+
+model MainCategory {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  icon          String
+  color         String         @default("#F97316")
+  order         Int            @default(0)
+
+  subCategories SubCategory[]
+
+  createdAt     DateTime       @default(now())
+}
+
+model SubCategory {
+  id             String        @id @default(cuid())
+  name           String
+  slug           String        @unique
+
+  mainCategoryId String
+  mainCategory   MainCategory  @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+
+  order          Int           @default(0)
+
+  posts          Post[]
+
+  createdAt      DateTime      @default(now())
+}
+
+model Tag {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  slug       String    @unique
+  usageCount Int       @default(0)
+
+  postTags   PostTag[]
+
+  createdAt  DateTime  @default(now())
+}
+
+model PostTag {
+  id     String @id @default(cuid())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+}
+
+// ==========================================
+// POSTS & COMMENTS
+// ==========================================
+
+model Post {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  content       String
+  type          String    @default("DISCUSSION")
+  imageUrl      String?
+
+  authorId      String
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+
+  likesCount    Int       @default(0)
+  commentsCount Int       @default(0)
+  viewsCount    Int       @default(0)
+  isPinned      Boolean   @default(false)
+
+  comments      Comment[]
+  likes         Like[]
+  images        PostImage[]
+  tags          PostTag[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  url       String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id         String    @id @default(cuid())
+  content    String
+
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  postId     String
+  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  parentId   String?
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+
+  likesCount Int       @default(0)
+  likes      Like[]
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Like {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+}
+
+// ==========================================
+// COURSES
+// ==========================================
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  thumbnail   String?
+
+  difficulty  String   @default("BEGINNER")
+
+  isPublished Boolean  @default(false)
+  isPremium   Boolean  @default(false)
+  order       Int      @default(0)
+
+  modules     Module[]
+  progress    CourseProgress[]
+  enrollments CourseEnrollment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  content     String?
+  videoUrl    String?
+
+  courseId     String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  order       Int      @default(0)
+  duration    Int      @default(10)
+
+  lessons     Lesson[]
+  materials   Material[]
+  progress    CourseProgress[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String
+  videoUrl    String?
+  duration    Int      @default(0)
+  order       Int      @default(0)
+  type        String   @default("VIDEO")
+  isPublished Boolean  @default(true)
+
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  materials   LessonMaterial[]
+  progress    LessonProgress[]
+  notes       LessonNote[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LessonMaterial {
+  id       String   @id @default(cuid())
+  title    String
+  fileUrl  String
+  fileType String
+  order    Int      @default(0)
+
+  lessonId String
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model CourseEnrollment {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId     String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model LessonNote {
+  id        String   @id @default(cuid())
+  content   String
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model Material {
+  id       String   @id @default(cuid())
+  title    String
+  fileUrl  String
+  fileType String
+
+  moduleId String
+  module   Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  order    Int      @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+model CourseProgress {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId     String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  moduleId    String
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, moduleId])
+}
+
+// ==========================================
+// REEL INSPIRATION LIBRARY
+// ==========================================
+
+model ReelInspiration {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  thumbnailUrl String
+  videoUrl     String?
+
+  category     String
+  niche        String
+  script       String?
+  tags         String   @default("")
+
+  likesCount   Int      @default(0)
+  savesCount   Int      @default(0)
+
+  savedBy      SavedReel[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SavedReel {
+  id     String   @id @default(cuid())
+
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reelId String
+  reel   ReelInspiration @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  savedAt DateTime @default(now())
+
+  @@unique([userId, reelId])
+}
+
+// ==========================================
+// GAMIFICATION
+// ==========================================
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type         String
+  metadata     String?
+  pointsEarned Int      @default(0)
+
+  createdAt    DateTime @default(now())
+}
+
+// ==========================================
+// BADGES & CHALLENGES
+// ==========================================
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  iconUrl     String
+  category    String   // COMMUNITY, CONTENT, LEARNING, SPECIAL, SECRET
+  requirement String   // JSON: {type, threshold, metadata?}
+  points      Int      @default(0)
+  isSecret    Boolean  @default(false)
+  order       Int      @default(0)
+
+  userBadges  UserBadge[]
+  challenges  Challenge[]
+
+  createdAt   DateTime @default(now())
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // DAILY, WEEKLY, MONTHLY, SPECIAL
+  requirement String   // JSON: {type, target, metadata?}
+  reward      Int      // points reward
+  badgeId     String?
+  badge       Badge?   @relation(fields: [badgeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+
+  participations ChallengeParticipation[]
+
+  createdAt   DateTime @default(now())
+}
+
+model ChallengeParticipation {
+  id          String    @id @default(cuid())
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  progress    Int       @default(0)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, challengeId])
+}
+
+// ==========================================
+// SITE SETTINGS
+// ==========================================
+
+model SiteSettings {
+  id               String   @id @default(cuid())
+
+  siteName         String   @default("Klub Internetowy Przedsiebiorca")
+  siteDescription  String?
+  registrationOpen Boolean  @default(true)
+  maxUsersForFree  Int      @default(100)
+  monthlyPrice     Int      @default(28)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
